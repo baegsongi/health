@@ -1,0 +1,7 @@
+.DS_Store
+.afpDeleted*
+.Trashes
+/storage/
+/public/media/
+/config.local.php
+*.part

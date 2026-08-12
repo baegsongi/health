@@ -1,0 +1,391 @@
+/* 송이의 GYMFLIX — 인계 문서 §8
+   어두운 배경 · 흰 글씨 · 빨강 강조. 모바일 1칼럼. 폰트는 자체 호스팅. */
+
+@font-face {
+  font-family: 'Pretendard';
+  src: url('fonts/pretendard/Pretendard-Regular.woff2') format('woff2');
+  font-weight: 400; font-style: normal; font-display: swap;
+}
+@font-face {
+  font-family: 'Pretendard';
+  src: url('fonts/pretendard/Pretendard-Medium.woff2') format('woff2');
+  font-weight: 500; font-style: normal; font-display: swap;
+}
+@font-face {
+  font-family: 'Pretendard';
+  src: url('fonts/pretendard/Pretendard-Bold.woff2') format('woff2');
+  font-weight: 700; font-style: normal; font-display: swap;
+}
+@font-face {
+  font-family: 'Pretendard';
+  src: url('fonts/pretendard/Pretendard-ExtraBold.woff2') format('woff2');
+  font-weight: 800; font-style: normal; font-display: swap;
+}
+/* 넷플릭스 워드마크의 Netflix Sans 는 독점 폰트라 쓸 수 없다. Bebas Neue(SIL OFL)로 대신한다. */
+@font-face {
+  font-family: 'Bebas Neue';
+  src: url('fonts/bebas-neue/bebas-neue.woff2') format('woff2');
+  font-weight: 400; font-style: normal; font-display: swap;
+}
+
+:root {
+  --bg:#141414; --panel:#1b1b1d; --panel2:#232326; --line:#2f2f35;
+  --ink:#fff; --muted:#9d9da4; --red:#e50914;
+  --pad:12px; --radius:10px;
+}
+
+* { box-sizing: border-box; }
+
+html { -webkit-text-size-adjust: 100%; }
+
+/* iOS 는 글자가 16px 보다 작은 입력칸에 포커스하면 화면을 확대한다. 전부 16px 로 고정한다. */
+input, select, textarea, button { font-size: 16px; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', sans-serif;
+  font-size: 14px;
+  line-height: 1.6;
+  padding-bottom: 108px;              /* 떠 있는 하단 바 자리 */
+  -webkit-tap-highlight-color: transparent;
+}
+
+a { color: inherit; text-decoration: none; }
+
+/* 로고 --------------------------------------------------------- */
+/* 본문(.wrap)과 같은 폭·같은 좌우 여백. 뒤로가기가 본문 왼쪽 끝에 맞아야 한다. */
+.top { padding: 18px var(--pad) 10px; max-width: 900px; margin: 0 auto; }
+.logo { display: block; text-align: center; line-height: 1; }
+.logo-ko { display: block; font-weight: 800; font-size: 20px; letter-spacing: -0.02em; }
+.logo-en {
+  display: block; font-family: 'Bebas Neue', 'Pretendard', sans-serif;
+  color: var(--red); font-size: 38px; letter-spacing: 0.02em; margin-top: 2px;
+}
+@media (min-width: 560px) {
+  .logo-ko { font-size: 23px; }
+  .logo-en { font-size: 44px; }
+}
+
+/* 레이아웃 ----------------------------------------------------- */
+.wrap { padding: 0 var(--pad) 24px; max-width: 900px; margin: 0 auto; }
+.h1 { font-size: 18px; font-weight: 700; margin: 8px 0 16px; }
+.h2 { font-size: 16px; font-weight: 700; margin: 24px 0 10px; }
+.stack { display: flex; flex-direction: column; gap: 10px; }
+.muted { color: var(--muted); }
+.stat { text-align: center; margin-top: 24px; font-size: 13px; }
+.inline { display: inline; margin: 0; }
+
+/* 버튼 — 주요 동작은 64px 이상 -------------------------------- */
+.btn {
+  display: flex; align-items: center; justify-content: center;
+  min-height: 56px; padding: 0 16px;
+  background: var(--panel2); color: var(--ink);
+  border: 1px solid var(--line); border-radius: var(--radius);
+  font: inherit; font-weight: 700; font-size: 16px;
+  cursor: pointer; text-align: center; width: 100%;
+}
+.btn:active { background: var(--line); }
+.btn-xl { min-height: 64px; font-size: 17px; }
+.btn-primary { background: var(--red); border-color: var(--red); }
+.btn-primary:active { filter: brightness(0.85); }
+.linkish {
+  background: none; border: 0; color: var(--muted);
+  font: inherit; padding: 0; cursor: pointer;
+}
+
+/* 폼 ----------------------------------------------------------- */
+.label { color: var(--muted); font-size: 13px; }
+.input {
+  width: 100%; min-height: 56px; padding: 0 14px;
+  background: var(--panel); color: var(--ink);
+  border: 1px solid var(--line); border-radius: var(--radius);
+  font: inherit; font-size: 16px;                /* 16px 미만이면 iOS 가 확대한다 */
+}
+.input:focus { outline: 2px solid var(--red); outline-offset: 1px; }
+
+/* 아이디는 고정이다. disabled 는 값이 전송되지 않으므로 readonly + 스타일로 잠근다. */
+.input-locked {
+  background: var(--panel2); color: var(--muted);
+  cursor: not-allowed; pointer-events: none; user-select: none;
+}
+
+/* 입장 화면 — 화면 가운데 --------------------------------------- */
+.gate {
+  min-height: calc(100vh - 260px);
+  display: flex; flex-direction: column; justify-content: center;
+  max-width: 340px; margin: 0 auto; text-align: left;
+}
+.gate-form { margin: 0; }
+.gate .label { margin-top: 4px; }
+.gate .btn { margin-top: 10px; }
+
+/* 알림 --------------------------------------------------------- */
+.notice, .error {
+  background: var(--panel); border: 1px solid var(--line);
+  border-radius: var(--radius); padding: var(--pad); margin: 0 0 14px;
+}
+.error { border-color: var(--red); }
+code { background: var(--panel2); padding: 1px 5px; border-radius: 4px; font-size: 12px; }
+
+/* 목록 · 카드 ---------------------------------------------------- */
+.plain { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.card {
+  background: var(--panel); border: 1px solid var(--line);
+  border-radius: var(--radius); padding: var(--pad);
+}
+.small { font-size: 12px; }
+.muted.small { margin: 4px 0 0; }
+
+/* 진행 막대 ------------------------------------------------------ */
+.bar {
+  height: 10px; border-radius: 5px; background: var(--panel2);
+  overflow: hidden; margin-bottom: 8px;
+}
+.bar > span { display: block; height: 100%; background: var(--red); }
+
+/* 미디어 --------------------------------------------------------- */
+.m-video, .m-image {
+  width: 100%; height: auto; display: block;
+  border-radius: var(--radius); background: #000;
+}
+.m-pending {
+  display: flex; align-items: center; justify-content: center;
+  min-height: 120px; border-radius: var(--radius);
+  background: var(--panel2); color: var(--muted); font-size: 13px;
+}
+
+/* 열람 ----------------------------------------------------------- */
+.back { display: inline-block; color: var(--muted); font-size: 13px; font-weight: 700; padding: 8px 0; }
+.card-link { display: block; }
+.card-link:active { background: var(--panel2); }
+.card-loose { border-left: 3px solid var(--red); }
+.card-top { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.card-date { font-weight: 700; }
+.chip {
+  display: inline-block; padding: 3px 9px; border-radius: 999px;
+  background: var(--panel2); border: 1px solid var(--line);
+  font-size: 12px; font-weight: 700; color: var(--muted);
+}
+.chip-link { color: var(--ink); }
+
+.ex { margin: 18px 0 26px; }
+.ex-name { display: flex; align-items: baseline; gap: 8px; font-size: 17px; font-weight: 800; margin: 0 0 6px; }
+.ex-no { color: var(--red); font-family: 'Bebas Neue', sans-serif; font-size: 22px; }
+.ex-tags { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+.ex-meta { color: var(--muted); font-size: 13px; white-space: pre-line; }
+
+.sec { margin: 0 0 34px; }
+.sec-h { font-size: 16px; font-weight: 800; margin: 0 0 10px; padding-top: 14px; border-top: 1px solid var(--line); }
+
+/* 노션에서 만든 본문 ---------------------------------------------- */
+.body { word-break: keep-all; }
+.body .b-p { margin: 8px 0; }
+.body .b-h { font-size: 15px; font-weight: 800; margin: 14px 0 6px; }
+.body .b-callout {
+  background: var(--panel); border: 1px solid var(--line);
+  border-radius: var(--radius); padding: var(--pad); margin: 10px 0;
+}
+.body .b-quote { margin: 10px 0; padding-left: 12px; border-left: 3px solid var(--line); color: var(--muted); }
+.body .b-div { border: 0; border-top: 1px solid var(--line); margin: 14px 0; }
+.body ol, .body ul { margin: 8px 0; padding-left: 20px; }
+.body li { margin: 3px 0; }
+.body .b-cols { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin: 10px 0; }
+@media (min-width: 560px) { .body .b-cols { grid-template-columns: repeat(3, 1fr); } }
+.body .b-col { min-width: 0; }
+.body .b-toggle { margin: 8px 0; }
+.body .b-toggle > summary { cursor: pointer; font-weight: 700; }
+.body .b-extlink a { color: var(--red); font-weight: 700; }
+.body .hl { border-radius: 3px; padding: 0 2px; }
+.body .hl-red, .body .hl-red_background { color: #ff6b6b; }
+.body .hl-gray, .body .hl-gray_background { color: var(--muted); }
+
+/* 오늘의 운동 — 고르기 -------------------------------------------- */
+.addrow { display: flex; gap: 8px; margin: 0 0 14px; }
+.addrow .input { flex: 1; }
+.btn-add { width: auto; min-width: 84px; }
+.linkish-a { color: var(--muted); font-size: 13px; text-decoration: underline; }
+
+.tabs { display: flex; gap: 6px; overflow-x: auto; padding: 2px 0 10px; }
+.tab {
+  flex: 0 0 auto; padding: 9px 14px; border-radius: 999px;
+  background: var(--panel2); border: 1px solid var(--line);
+  color: var(--muted); font-size: 14px; font-weight: 700;
+}
+.tab-on { background: var(--red); border-color: var(--red); color: var(--ink); }
+
+.grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+@media (min-width: 560px) { .grid { grid-template-columns: repeat(3, 1fr); } }
+.pick {
+  display: flex; flex-direction: column; justify-content: center; gap: 4px;
+  min-height: 72px; padding: 10px 12px;
+  background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
+}
+.pick:active { background: var(--panel2); }
+.pick-name { font-weight: 700; font-size: 15px; line-height: 1.3; word-break: keep-all; }
+.pick-last { color: var(--muted); font-size: 11px; }
+
+/* 오늘의 운동 — 카운터 -------------------------------------------- */
+.counter-name { text-align: center; font-size: 22px; font-weight: 800; margin: 6px 0 4px; }
+.counter-total {
+  text-align: center; font-size: 20px; padding: 14px 0; margin-bottom: 14px;
+  border-top: 1px solid var(--line); border-bottom: 1px solid var(--line);
+}
+.counter-total b { font-family: 'Bebas Neue', sans-serif; font-size: 30px; color: var(--red); }
+
+.counter-pad { display: flex; gap: 8px; margin: 10px 0; }
+.counter-pad .cell { flex: 1; margin: 0; }
+.btn-sub, .btn-set { min-height: 64px; font-size: 17px; }
+.btn-rep { min-height: 96px; font-size: 24px; font-weight: 800; }
+
+.setlist { list-style: none; margin: 16px 0; padding: 0; }
+.setrow { border-top: 1px solid var(--line); }
+.setrow-on { background: rgba(229, 9, 20, 0.08); }
+.setform { display: flex; align-items: center; gap: 6px; padding: 6px 4px; }
+.setno { min-width: 56px; font-weight: 700; }
+.input-mini { width: 72px; min-height: 44px; padding: 0 8px; text-align: center; }
+.btn-mini { width: auto; min-height: 44px; padding: 0 12px; font-size: 14px; }
+
+/* 홈 ------------------------------------------------------------- */
+.home-sub { text-align: center; margin-top: 22px; }
+.home-sub a { color: var(--muted); font-size: 13px; text-decoration: underline; }
+
+/* 전체 PT 기록 — 목차 -------------------------------------------- */
+.toc {
+  background: var(--panel); border: 1px solid var(--line);
+  border-radius: var(--radius); padding: 4px var(--pad) 8px; margin-bottom: 22px;
+}
+.toc-h { font-weight: 800; font-size: 13px; color: var(--muted); padding: 8px 0 4px; }
+.toc-list { list-style: none; margin: 0; padding: 0; }
+.toc-list li { border-top: 1px solid var(--line); }
+.toc-list a { display: flex; align-items: center; gap: 8px; min-height: 44px; }
+.toc-code {
+  min-width: 46px; font-family: 'Bebas Neue', sans-serif; font-size: 17px; color: var(--red);
+}
+.toc-date { font-weight: 700; }
+
+.sec { scroll-margin-top: 12px; }
+.sec-h { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.sec-top { color: var(--muted); font-size: 12px; font-weight: 400; white-space: nowrap; }
+
+
+/* 상단 뒤로가기 --------------------------------------------------- */
+.top { position: relative; }
+/* 44px 누름 영역은 그대로 두되, 안의 22px 아이콘의 왼쪽 끝이 본문 여백선에 맞도록 당긴다. */
+.backbtn {
+  position: absolute; top: 50%; transform: translateY(-50%);
+  left: calc(var(--pad) - 11px);
+  display: flex; align-items: center; justify-content: center;
+  width: 44px; height: 44px; border-radius: 50%;
+  color: var(--muted);
+}
+.backbtn:hover { color: var(--ink); background: var(--panel2); }
+.backbtn:active { color: var(--ink); background: var(--line); }
+
+/* 모바일 하단 바 — nugabox-core 의 rp-mobile-nav 결 ---------------- */
+.mnav {
+  position: fixed; left: 0; right: 0;
+  bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+  z-index: 44; padding: 0 12px;
+  display: flex; align-items: center;
+  pointer-events: none;
+}
+.mnav > * { pointer-events: auto; }
+
+.mnav-bar {
+  flex: 1; min-width: 0; max-width: 420px; margin: 0 auto;
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  height: 52px; border-radius: 9999px;
+  /* 테두리 없이 반투명 유리 — 뒤 콘텐츠가 살짝 비친다 */
+  background: rgba(48, 50, 54, 0.55);
+  backdrop-filter: blur(28px) saturate(200%);
+  -webkit-backdrop-filter: blur(28px) saturate(200%);
+  /* 유리 느낌은 색이 아니라 가장자리 하이라이트 + 바닥 그림자에서 나온다 */
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.1),
+    0 10px 30px rgba(0, 0, 0, 0.35);
+}
+
+.mnav-form { display: contents; }
+
+.mnav-item {
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 9999px; margin: 4px;
+  background: none; border: 0; padding: 0;
+  color: #fafafa; cursor: pointer;
+}
+/* 현재 탭 — 칸을 꽉 채우는 밝은 알약 위에 꽉 찬 아이콘 */
+.mnav-item.is-active {
+  background: rgba(255, 255, 255, 0.16);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+}
+.mnav-item:active { background: rgba(255, 255, 255, 0.1); }
+
+/* 목록 구분선 ----------------------------------------------------- */
+.divided > * + * { border-top: 1px solid var(--line); padding-top: 18px; }
+.ex + .ex { border-top: 1px solid var(--line); padding-top: 18px; }
+
+/* 운동 부위 뱃지 --------------------------------------------------- */
+.badges { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 4px; }
+.badge {
+  display: inline-block; padding: 1px 7px; border-radius: 999px;
+  background: var(--panel2); border: 1px solid var(--line);
+  color: var(--muted); font-size: 10px; font-weight: 700; line-height: 1.6;
+}
+
+/* 직접 추가 — 부위 고르기 + 이름 ---------------------------------- */
+.addrow .select {
+  min-height: 56px; padding: 0 10px; flex: 0 0 92px;
+  background: var(--panel); color: var(--ink);
+  border: 1px solid var(--line); border-radius: var(--radius);
+  font: inherit; font-size: 16px;
+}
+.toc-name { flex: 1; min-width: 0; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ex { scroll-margin-top: 12px; }
+
+/* 홈 아래 링크는 밑줄 없이 ---------------------------------------- */
+.home-sub a { text-decoration: none; }
+
+/* 사이트 푸터 ----------------------------------------------------- */
+.site-foot {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  padding: 26px 12px 6px;
+  color: var(--muted); font-size: 12px;
+}
+.site-foot a { display: inline-flex; color: var(--muted); }
+.site-foot a:hover, .site-foot a:active { color: var(--ink); }
+
+/* ============================================================
+   마우스오버 — 누르기 전에도 반응이 보이게 한다.
+   손가락에는 :hover 가 없으므로 :active 도 함께 둔다.
+   ============================================================ */
+.btn:hover { background: var(--line); border-color: #3d3d45; }
+.btn-primary:hover { background: #f6121d; border-color: #f6121d; }
+.card-link:hover { background: var(--panel2); border-color: #3d3d45; }
+.pick:hover { background: var(--panel2); border-color: #3d3d45; }
+.tab:hover { background: var(--line); color: var(--ink); }
+.tab-on:hover { background: #f6121d; }
+.chip-link:hover { background: var(--line); color: var(--ink); }
+.toc-list a:hover { color: var(--red); }
+.sec-h a:hover { color: var(--red); }
+.mnav-item:hover { background: rgba(255, 255, 255, 0.1); }
+.mnav-item.is-active:hover { background: rgba(255, 255, 255, 0.24); }
+.linkish-a:hover { color: var(--ink); }
+
+/* 작은 버튼 — 홈 아래 Import Notion · Logout ---------------------- */
+.home-sub {
+  display: flex; justify-content: center; gap: 8px;
+  margin-top: 22px;
+}
+.home-sub form { margin: 0; }
+.btn-sm {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-height: 36px; padding: 0 14px;
+  background: var(--panel); color: var(--muted);
+  border: 1px solid var(--line); border-radius: 999px;
+  font: inherit; font-size: 12px; font-weight: 700;
+  cursor: pointer; white-space: nowrap;
+}
+.btn-sm:hover { background: var(--panel2); color: var(--ink); border-color: #3d3d45; }
+.btn-sm:active { background: var(--line); color: var(--ink); }

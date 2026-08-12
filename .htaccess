@@ -1,0 +1,31 @@
+# 이 폴더가 그대로 https://cloud.nugabox.com/health/ 의 문서 루트다.
+# 문서 루트를 public/ 으로 바꿀 수 없으므로 여기서 모든 요청을 public/ 안으로 돌린다.
+# (Apache 2.4 · mod_rewrite 필요 · AllowOverride All)
+
+Options -Indexes
+DirectoryIndex public/index.php
+
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+
+  # 1) 소스 · DB · 설정은 절대 내보내지 않는다.
+  RewriteRule ^(storage|src|bin|migrations|tests)(/|$) - [F,L]
+  RewriteRule ^(config\.php|config\.local\.php|\.git)(/|$) - [F,L]
+
+  # 2) 정적 파일(css · 폰트 · 내려받은 미디어)은 웹서버가 직접 서빙한다.
+  RewriteRule ^(assets|media)/(.*)$ public/$1/$2 [L]
+
+  # 3) 이미 public/ 로 들어온 요청은 그대로 둔다.
+  RewriteRule ^public/ - [L]
+
+  # 4) 나머지는 전부 프론트 컨트롤러로.
+  RewriteRule ^ public/index.php [L]
+</IfModule>
+
+# 동영상은 이어보기(Range)가 되어야 한다.
+<IfModule mod_headers.c>
+  <FilesMatch "\.(mp4|gif|png|jpe?g|webp|woff2)$">
+    Header set Accept-Ranges bytes
+    Header set Cache-Control "private, max-age=604800"
+  </FilesMatch>
+</IfModule>

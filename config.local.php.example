@@ -1,0 +1,14 @@
+<?php
+declare(strict_types=1);
+
+// 이 파일을 config.local.php 로 복사해서 쓴다. config.local.php 는 git 에 올라가지 않는다.
+return [
+    // php bin/set-password.php '원하는비밀번호' 가 찍어주는 값을 붙여넣는다.
+    'password_hash'  => '$2y$12$....',
+
+    // http 로 확인 중이면 false 로 둔다. 실서비스(https)는 true.
+    'secure_cookie'  => true,
+
+    // 앱이 https://example.com/health/ 에 얹힌다면 '/health'
+    'base_path'      => '',
+];
