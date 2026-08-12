@@ -112,6 +112,21 @@ final class App
         return self::config()[$key] ?? $default;
     }
 
+    /**
+     * 바깥에서 쓸 수 있는 전체 주소(https://호스트/…).
+     * 소셜 미리보기(og:image · og:url)는 상대 경로를 읽지 못한다.
+     */
+    public static function absoluteUrl(string $path = '/'): string
+    {
+        $host = (string) ($_SERVER['HTTP_HOST'] ?? '');
+        if ($host === '') {
+            return self::url($path);
+        }
+        $https = ($_SERVER['HTTPS'] ?? '') !== '' && ($_SERVER['HTTPS'] ?? '') !== 'off';
+        $proto = $https || (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https') ? 'https' : 'http';
+        return $proto . '://' . $host . self::url($path);
+    }
+
     /** 앱 기준 절대 경로. base_path 접두사를 붙여준다. */
     public static function url(string $path = '/'): string
     {

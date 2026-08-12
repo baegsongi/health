@@ -20,6 +20,25 @@ $here   = $here ?? '/';
 <meta http-equiv="refresh" content="<?= e($refresh['secs']) ?>; url=<?= empty($refresh['absolute']) ? url($refresh['to']) : e($refresh['to']) ?>">
 <?php endif; ?>
 <title><?= $pageTitle ? e($pageTitle) . ' · 송이의 GYMFLIX' : '송이의 GYMFLIX' ?></title>
+<?php
+$ogTitle = $pageTitle ? $pageTitle . ' · 송이의 GYMFLIX' : '송이의 GYMFLIX';
+$ogDesc  = '노션에 흩어져 있던 PT 기록을 한곳에 모아두고, 오늘 한 운동은 바로 기록합니다.';
+?>
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="송이의 GYMFLIX">
+<meta property="og:title" content="<?= e($ogTitle) ?>">
+<meta property="og:description" content="<?= e($ogDesc) ?>">
+<meta property="og:url" content="<?= e(\Health\App::absoluteUrl($here)) ?>">
+<meta property="og:image" content="<?= e(\Health\App::absoluteUrl('/assets/og.png')) ?>">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="송이의 GYMFLIX">
+<meta property="og:locale" content="ko_KR">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="<?= e($ogTitle) ?>">
+<meta name="twitter:description" content="<?= e($ogDesc) ?>">
+<meta name="twitter:image" content="<?= e(\Health\App::absoluteUrl('/assets/og.png')) ?>">
+<meta name="description" content="<?= e($ogDesc) ?>">
 <link rel="icon" type="image/png" sizes="32x32" href="<?= url('/assets/favicon-32.png') ?>">
 <link rel="icon" type="image/png" sizes="16x16" href="<?= url('/assets/favicon-16.png') ?>">
 <link rel="apple-touch-icon" href="<?= url('/assets/apple-touch-icon.png') ?>">
