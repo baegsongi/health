@@ -353,8 +353,11 @@ code { background: var(--panel2); padding: 1px 5px; border-radius: 4px; font-siz
   padding: 26px 12px 6px;
   color: var(--muted); font-size: 12px;
 }
-.site-foot a { display: inline-flex; color: var(--muted); }
-.site-foot a:hover, .site-foot a:active { color: var(--ink); }
+.site-foot a {
+  display: inline-flex; align-items: center; gap: 7px;
+  color: var(--muted); padding: 6px 10px; border-radius: 999px;
+}
+.site-foot a:hover, .site-foot a:active { color: var(--ink); background: var(--panel); }
 
 /* ============================================================
    마우스오버 — 누르기 전에도 반응이 보이게 한다.

@@ -161,7 +161,7 @@ final class Workout
                     (SELECT COUNT(*) FROM workout_sets WHERE workout_id = w.id AND reps > 0) AS n_sets,
                     (SELECT COALESCE(SUM(reps), 0) FROM workout_sets WHERE workout_id = w.id) AS n_reps
                FROM workouts w
-              ORDER BY w.started_at DESC
+              ORDER BY w.started_at ASC
               LIMIT ?',
             [$limit]
         );

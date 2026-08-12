@@ -14,12 +14,11 @@ use Health\Parts;
 final class Log
 {
     /**
-     * 회차 목록. 기본은 날짜 내림차순(최근이 위).
-     * 전체보기는 오름차순으로 쭉 읽는다.
+     * 회차 목록. 오래된 것이 위로 온다 — 처음부터 순서대로 읽는 기록이라 그게 자연스럽다.
      *
      * @return array<int,array<string,mixed>>
      */
-    public static function sessions(bool $ascending = false): array
+    public static function sessions(bool $ascending = true): array
     {
         $rows = Db::all(
             "SELECT s.*,
@@ -126,10 +125,11 @@ final class Log
             return $known ? in_array($part, Parts::of($name), true) : $name === $part;
         }));
 
+        // 부위별 목록도 오래된 것이 위로 온다.
         usort($rows, static function (array $a, array $b): int {
             $ad = Title::isoDate($a['date'] ?? null) ?? '';
             $bd = Title::isoDate($b['date'] ?? null) ?? '';
-            return $bd <=> $ad ?: (int) $a['position'] <=> (int) $b['position'];
+            return $ad <=> $bd ?: (int) $a['position'] <=> (int) $b['position'];
         });
 
         return $rows;

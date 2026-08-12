@@ -128,7 +128,7 @@ $importScreen = function (?string $error = null, ?array $result = null): void {
         'back'    => '/',
         'error'   => $error,
         'result'  => $result,
-        'sources' => Db::all('SELECT kind, title, imported_at FROM sources ORDER BY imported_at DESC'),
+        'sources' => Db::all('SELECT kind, title, imported_at FROM sources ORDER BY imported_at ASC'),
         'media'   => [
             'pending' => (int) Db::value('SELECT COUNT(*) FROM media WHERE status = ?', ['pending']),
             'done'    => (int) Db::value('SELECT COUNT(*) FROM media WHERE status = ?', ['done']),
@@ -264,8 +264,7 @@ $r->get('/log/part/{name}', function (string $name): void {
 
 $r->get('/log/all', function (): void {
     Auth::require();
-    // 전체보기는 일자 오름차순으로 쭉 읽는다.
-    $sessions = Log::sessions(true);
+    $sessions = Log::sessions();
     $groups   = [];
     foreach ($sessions as $s) {
         $groups[] = ['session' => $s, 'exercises' => Log::exercisesOf((int) $s['id'])];
