@@ -22,7 +22,7 @@ $here   = $here ?? '/';
 <title><?= $pageTitle ? e($pageTitle) . ' · 송이의 GYMFLIX' : '송이의 GYMFLIX' ?></title>
 <?php
 $ogTitle = $pageTitle ? $pageTitle . ' · 송이의 GYMFLIX' : '송이의 GYMFLIX';
-$ogDesc  = '노션에 흩어져 있던 PT 기록을 한곳에 모아두고, 오늘 한 운동은 바로 기록합니다.';
+$ogDesc  = '송이의 운동기록 🏃‍♀️';
 ?>
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="송이의 GYMFLIX">
