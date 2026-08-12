@@ -395,8 +395,8 @@ code { background: var(--panel2); padding: 1px 5px; border-radius: 4px; font-siz
 
 /* 홈 D-DAY 한 줄 --------------------------------------------------- */
 .dday {
-  text-align: center; margin: 0 0 16px;
-  font-size: 15px; font-weight: 700; color: var(--ink);
+  text-align: center; margin: 0 0 18px;
+  font-size: 17px; font-weight: 700; color: var(--ink);
 }
 
 /* 오늘의 메시지 ---------------------------------------------------- */
@@ -406,7 +406,7 @@ code { background: var(--panel2); padding: 1px 5px; border-radius: 4px; font-siz
   border-radius: var(--radius); padding: 12px 14px; margin: 0 0 18px;
 }
 .coach-h {
-  margin: 0 0 6px; font-size: 12px; font-weight: 800;
+  margin: 0 0 7px; font-size: 13px; font-weight: 800;
   color: var(--red); letter-spacing: 0.02em;
 }
-.coach-body { margin: 0; font-size: 14px; line-height: 1.7; word-break: keep-all; }
+.coach-body { margin: 0; font-size: 16px; line-height: 1.72; word-break: keep-all; }
