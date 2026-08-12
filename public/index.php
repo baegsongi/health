@@ -84,7 +84,34 @@ $r->post('/logout', function (): void {
 
 $r->get('/', function (): void {
     Auth::require();
-    View::render('home', []);
+    View::render('home', ['ddayLine' => \Health\Settings::ddayLine()]);
+});
+
+/* D-DAY 설정 -------------------------------------------------- */
+
+$r->get('/dday', function (): void {
+    Auth::require();
+    $saved = !empty($_SESSION['dday_saved']);
+    unset($_SESSION['dday_saved']);
+    View::render('dday', [
+        'title' => 'D-DAY 설정',
+        'back'  => '/',
+        'dday'  => \Health\Settings::dday(),
+        'saved' => $saved,
+    ]);
+});
+
+$r->post('/dday', function (): void {
+    Auth::require();
+    Csrf::check();
+    $title = trim(Http::post('title'));
+    $date  = trim(Http::post('date'));
+    if ($title !== '' && preg_match('/^\d{4}-\d{2}-\d{2}$/', $date) === 1) {
+        \Health\Settings::set(\Health\Settings::DDAY_TITLE, mb_substr($title, 0, 30));
+        \Health\Settings::set(\Health\Settings::DDAY_DATE, $date);
+        $_SESSION['dday_saved'] = true;
+    }
+    Http::redirect('/dday');
 });
 
 /**
@@ -298,6 +325,8 @@ $r->get('/today', function (): void {
 
     View::render('today', [
         'title'       => '오늘의 운동',
+        // 화면을 여는 데 API 를 기다리게 하지 않는다. 하루 단위로 캐시하고, 실패하면 규칙 문장.
+        'coach'       => \Health\Coach::todayMessage(),
         'back'        => '/',
         'tab'         => $tab,
         'tabs'        => array_merge(['전체'], Parts::names()),

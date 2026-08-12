@@ -11,6 +11,11 @@ use Health\Parts;
 ?>
 <h1 class="h1">오늘의 운동</h1>
 
+<section class="coach">
+  <h2 class="coach-h">오늘의 메시지</h2>
+  <p class="coach-body"><?= nl2br(e($coach['text'])) ?></p>
+</section>
+
 <?php if ($openWorkout !== null): ?>
   <p class="notice">
     오늘 기록이 진행 중입니다.

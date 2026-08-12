@@ -50,7 +50,31 @@ cp config.local.php.example config.local.php
 | `secure_cookie` | https면 `true`. 로컬 http 확인 중이면 `false` |
 | `debug` | `true`면 오류를 화면에도 보여줍니다. **실서비스에서는 끄세요** |
 
-### 3. 비밀번호 설정
+### 3. AI 메시지 (선택)
+
+`.env` 를 만들면 "오늘의 운동" 화면 맨 위에 **오늘의 메시지**가 나옵니다.
+DB에 쌓인 기록(지난 PT 회차의 선생님 안내 · 오늘 기록한 세트 · D-DAY 남은 날)을 보고
+말해 줍니다.
+
+```bash
+cp .env.example .env
+```
+
+| 키 | 설명 |
+|---|---|
+| `LLM_MODEL` | 예: `deepseek-chat`, `deepseek-v4-pro` |
+| `DEEPSEEK_KEY` | DeepSeek API 키 |
+
+`.env` 는 git 에 올라가지 않습니다. 키가 없으면 AI 호출을 건너뛰고 규칙으로 만든
+문장이 대신 나옵니다 — 화면은 어떤 경우에도 열립니다.
+
+**추론 모델(`deepseek-v4-pro` 등)을 쓸 때는 `max_tokens` 가 넉넉해야 합니다.**
+생각하는 데 토큰을 다 쓰면 답이 빈 채로 옵니다. 기본값은 1500 입니다.
+
+호출은 **하루에 많아야 두 번**입니다(운동 시작 전 · 시작 후). 같은 날 같은 상황이면
+`ai_messages` 에 저장해 둔 것을 씁니다. 첫 호출은 15초쯤 걸리고, 그 뒤로는 즉시 나옵니다.
+
+### 4. 비밀번호 설정
 
 ```bash
 php bin/set-password.php '원하는비밀번호'
@@ -59,7 +83,7 @@ php bin/set-password.php '원하는비밀번호'
 출력된 해시를 `config.local.php`의 `password_hash`에 붙여넣습니다.
 비밀번호가 비어 있으면 아무도 로그인할 수 없습니다.
 
-### 4. 권한
+### 5. 권한
 
 웹서버 사용자(Apache는 보통 `www-data`, Synology NAS는 `http`)가 아래 두 곳에
 **읽기·쓰기** 권한이 있어야 합니다.
@@ -81,7 +105,7 @@ sudo chown -R http:http storage public/media
 권한이 없으면 앱은 죽지 않고 **읽기 전용**으로 열립니다. 열람은 되지만 기록·가져오기는
 저장되지 않고, 화면 위에 그 사실이 표시됩니다.
 
-### 5. 마이그레이션
+### 6. 마이그레이션
 
 ```bash
 php bin/migrate.php
@@ -187,6 +211,9 @@ src/
   Db.php          PDO 래퍼 + 마이그레이션 (쓰기 불가면 읽기 전용으로 폴백)
   Router.php  Auth.php  Csrf.php  Http.php  View.php
   Parts.php       운동부위 분류 표
+  Settings.php    D-DAY 등 화면에서 고치는 설정
+  Coach.php       "오늘의 메시지" — 기록을 근거로 문장을 만든다
+  Llm/Deepseek.php  DeepSeek chat completions
   Media.php       body_html 의 [[MEDIA:…]] 자리표시자 → 실제 태그
   MediaFetcher.php  나눠 받기 · 재개 · 이미 받은 파일 가져오기
   Notion/         Client · Craft · Parser · Importer · Attachment · Ids · Title

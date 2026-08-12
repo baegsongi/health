@@ -4,4 +4,6 @@
 /storage/
 /public/media/
 /config.local.php
+.env
+!.env.example
 *.part

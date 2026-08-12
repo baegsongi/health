@@ -392,3 +392,21 @@ code { background: var(--panel2); padding: 1px 5px; border-radius: 4px; font-siz
 }
 .btn-sm:hover { background: var(--panel2); color: var(--ink); border-color: #3d3d45; }
 .btn-sm:active { background: var(--line); color: var(--ink); }
+
+/* 홈 D-DAY 한 줄 --------------------------------------------------- */
+.dday {
+  text-align: center; margin: 0 0 16px;
+  font-size: 15px; font-weight: 700; color: var(--ink);
+}
+
+/* 오늘의 메시지 ---------------------------------------------------- */
+.coach {
+  background: var(--panel); border: 1px solid var(--line);
+  border-left: 3px solid var(--red);
+  border-radius: var(--radius); padding: 12px 14px; margin: 0 0 18px;
+}
+.coach-h {
+  margin: 0 0 6px; font-size: 12px; font-weight: 800;
+  color: var(--red); letter-spacing: 0.02em;
+}
+.coach-body { margin: 0; font-size: 14px; line-height: 1.7; word-break: keep-all; }

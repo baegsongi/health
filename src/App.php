@@ -101,6 +101,30 @@ final class App
         return self::root() . '/public/media';
     }
 
+    /**
+     * .env 를 읽는다. 아주 단순한 KEY=VALUE 형식만 본다.
+     * 비밀(API 키)은 config.php 가 아니라 여기 둔다.
+     */
+    public static function env(string $key, string $default = ''): string
+    {
+        static $vars = null;
+        if ($vars === null) {
+            $vars = [];
+            $file = self::root() . '/.env';
+            if (is_file($file)) {
+                foreach (file($file, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) ?: [] as $line) {
+                    $line = trim($line);
+                    if ($line === '' || str_starts_with($line, '#') || !str_contains($line, '=')) {
+                        continue;
+                    }
+                    [$k, $v] = explode('=', $line, 2);
+                    $vars[trim($k)] = trim(trim($v), "\"'");
+                }
+            }
+        }
+        return $vars[$key] ?? $default;
+    }
+
     /** @return array<string,mixed> */
     public static function config(): array
     {
