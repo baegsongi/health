@@ -39,6 +39,10 @@ final class Deepseek
     /**
      * 한 번 물어보고 답 글자만 돌려준다.
      *
+     * JSON 을 받고 싶으면 프롬프트로 부탁한다. response_format(json_object)은 쓰지 않는다 —
+     * 추론 모델(deepseek-v4-pro)에서 재보니 생각한 내용을 그대로 답에 쏟거나
+     * 시킨 항목을 빼먹었다. 그냥 부탁하면 3~4초에 깔끔하게 온다.
+     *
      * @param  array<int,array{role:string,content:string}> $messages
      * @throws \RuntimeException 호출이 실패하면
      */
@@ -83,10 +87,17 @@ final class Deepseek
             $msg = is_array($data) ? (string) ($data['error']['message'] ?? '') : '';
             throw new \RuntimeException("deepseek: HTTP $code" . ($msg !== '' ? " — $msg" : ''));
         }
-        $text = $data['choices'][0]['message']['content'] ?? null;
+        $text   = $data['choices'][0]['message']['content'] ?? null;
+        $reason = (string) ($data['choices'][0]['finish_reason'] ?? '?');
+
+        // 추론 모델은 max_tokens 를 생각하는 데 다 쓰기 쉽다. 그러면 답이 비어서 오거나
+        // 쓰다 만 채로 온다. 잘린 글을 그대로 넘기면 엉뚱한 데서 터지므로 여기서 끊는다.
+        if ($reason === 'length') {
+            throw new \RuntimeException(
+                "deepseek: max_tokens($maxTokens) 안에서 답을 못 끝냈습니다 — 한도를 늘리세요."
+            );
+        }
         if (!is_string($text) || trim($text) === '') {
-            // 추론 모델은 max_tokens 를 생각하는 데 다 쓰면 답이 비어서 온다.
-            $reason = $data['choices'][0]['finish_reason'] ?? '?';
             throw new \RuntimeException("deepseek: 빈 답을 받았습니다 (finish_reason: $reason)");
         }
         return trim($text);

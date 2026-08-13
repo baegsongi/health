@@ -114,6 +114,58 @@ $r->post('/dday', function (): void {
     Http::redirect('/dday');
 });
 
+/* PT 메시지 — 수업에서 들은 말을 그날 날짜로 적어 둔다 ---------- */
+
+$r->get('/pt-message', function (): void {
+    Auth::require();
+    $saved = !empty($_SESSION['pt_note_saved']);
+    unset($_SESSION['pt_note_saved']);
+
+    // 만드는 중이면 화면이 스스로 다시 열려 본다. 다 되면 알림이 뜬다(JavaScript 없이).
+    $waiting = \Health\Coach::isBuilding() && \Health\Coach::unseen() === null;
+
+    View::render('pt_message', [
+        'title'   => 'PT 메시지 추가',
+        'back'    => '/',
+        'day'     => date('Y-m-d'),
+        'note'    => \Health\PtNote::forDay(),
+        'saved'   => $saved,
+        'waiting' => $waiting,
+        'failed'  => !$waiting && \Health\Coach::lastError() !== '',
+        'refresh' => $waiting ? ['secs' => 4, 'to' => '/pt-message'] : null,
+    ]);
+});
+
+$r->post('/pt-message', function (): void {
+    Auth::require();
+    Csrf::check();
+    $text = trim(Http::post('message'));
+    if ($text !== '') {
+        \Health\PtNote::save($text);
+        $_SESSION['pt_note_saved'] = true;
+        // 만드는 데 15초쯤 걸린다. 화면은 바로 돌려주고, 만들기는 응답을 다 보낸 뒤에 한다.
+        // 다 되면 어느 화면에 있든 알림이 뜬다(Coach::unseen).
+        \Health\Coach::markBuilding();
+        Http::afterResponse(static function (): void {
+            set_time_limit(180);
+            try {
+                \Health\Coach::refresh();
+            } catch (\Throwable $e) {
+                App::log('PT 메시지 반영 실패: ' . $e->getMessage());
+            }
+        });
+    }
+    Http::redirect('/pt-message');
+});
+
+/** 알림의 "확인". 오늘 읽은 것으로 표시하고 오늘의 운동으로 보낸다. */
+$r->post('/coach/seen', function (): void {
+    Auth::require();
+    Csrf::check();
+    \Health\Coach::markSeen(Http::postInt('id'));
+    Http::redirect('/today');
+});
+
 /**
  * 인바디 앱 열기.
  *
@@ -325,7 +377,7 @@ $r->get('/today', function (): void {
 
     View::render('today', [
         'title'       => '오늘의 운동',
-        // 화면을 여는 데 API 를 기다리게 하지 않는다. 하루 단위로 캐시하고, 실패하면 규칙 문장.
+        // 미리 만들어 둔 것을 읽기만 한다(질의 한 번). 여기서 API 를 부르지 않는다.
         'coach'       => \Health\Coach::todayMessage(),
         'back'        => '/',
         'tab'         => $tab,
@@ -334,6 +386,10 @@ $r->get('/today', function (): void {
         'lastNotes'   => Workout::lastNotes(),
         'openWorkout' => Workout::open(),
     ]);
+
+    // 화면은 이미 다 나갔다. 오늘 것이 아직 없으면 여기서 만들어 둔다 —
+    // 그날 처음 연 사람만 규칙 문장을 보고, 그 다음부터는 AI 문장이 바로 나온다.
+    Http::afterResponse(static fn () => \Health\Coach::buildIfMissing());
 });
 
 $r->post('/today/add', function (): void {
@@ -379,40 +435,118 @@ $r->get('/today/{id}', function (string $id): void {
     }
     $w    = Workout::open();
     $sets = $w === null ? [] : Workout::sets((int) $w['id'], (int) $id);
+    $cur  = $w === null ? ['reps' => 0, 'weight' => null] : Workout::current((int) $w['id'], (int) $id);
+
+    // 유산소는 시간으로 세는 게 기본이다. 그 밖에는 횟수 탭으로 연다.
+    $parts   = \Health\Parts::ofExercise((string) $exercise['name'], $exercise['part_override'] ?? null);
+    $default = in_array('유산소', $parts, true) ? 'time' : 'count';
 
     View::render('today_counter', [
-        'title'      => (string) $exercise['name'],
-        'back'       => '/today',
-        'exercise'   => $exercise,
-        'sets'       => $sets,
-        'totalSets'  => count(array_filter($sets, static fn ($s) => (int) $s['reps'] > 0)),
-        'totalReps'  => array_sum(array_map(static fn ($s) => (int) $s['reps'], $sets)),
-        'showWeight' => Http::param('weight') === '1'
-                        || array_filter($sets, static fn ($s) => $s['weight'] !== null) !== [],
+        'title'     => (string) $exercise['name'],
+        'back'      => '/today',
+        'exercise'  => $exercise,
+        'sets'      => $sets,
+        'current'   => $cur,
+        'tab'       => in_array(Http::param('tab'), ['time', 'count'], true) ? Http::param('tab') : $default,
+        'totalSets' => count($sets),
+        'totalReps' => array_sum(array_map(static fn ($s) => (int) $s['reps'], $sets)),
+        'totalSecs' => array_sum(array_map(static fn ($s) => (float) ($s['secs'] ?? 0), $sets)),
     ]);
 });
 
-/** 카운터의 모든 버튼은 POST → 리다이렉트 → GET 이다. */
+/**
+ * 카운터의 동작들.
+ *
+ * 화면은 fetch 로 부르고 JSON(지금 값 · 쌓인 세트)을 돌려받는다 — 화면이 넘어가지 않는다.
+ * 자바스크립트가 없으면 같은 주소로 그냥 POST 되어 예전처럼 리다이렉트로 돌아간다.
+ */
 $counterAction = function (string $id, callable $do): void {
     Auth::require();
     Csrf::check();
-    if (Workout::exercise((int) $id) === null) {
+    $eid = (int) $id;
+    if (Workout::exercise($eid) === null) {
         Http::notFound('그런 운동이 없습니다.');
     }
-    $do(Workout::ensure(), (int) $id);
-    Http::redirect('/today/' . (int) $id);
+    $wid = Workout::ensure();
+    $do($wid, $eid);
+
+    if (!Http::wantsJson()) {
+        Http::redirect('/today/' . $eid);
+    }
+
+    $sets = Workout::sets($wid, $eid);
+    Http::json([
+        'current'   => Workout::current($wid, $eid),
+        'sets'      => array_map(static fn (array $s): array => [
+            'id'     => (int) $s['id'],
+            'set_no' => (int) $s['set_no'],
+            'reps'   => (int) $s['reps'],
+            'weight' => $s['weight'] !== null ? (float) $s['weight'] : null,
+            'secs'   => $s['secs'] !== null ? (float) $s['secs'] : null,
+        ], $sets),
+        'totalSets' => count($sets),
+        'totalReps' => array_sum(array_map(static fn ($s) => (int) $s['reps'], $sets)),
+        'totalSecs' => array_sum(array_map(static fn ($s) => (float) ($s['secs'] ?? 0), $sets)),
+    ]);
 };
 
-$r->post('/today/{id}/rep', function (string $id) use ($counterAction): void {
-    $counterAction($id, static fn (int $w, int $e) => Workout::addRep($w, $e, 1));
+/**
+ * 세고 있는 횟수를 맞춰 둔다.
+ *
+ * 화면은 이미 제 숫자를 알고 있으므로 답을 기다릴 필요가 없다 — 200 을 먼저 주고
+ * 쓰기는 그 뒤에 한다. NAS 에서 쓰기 한 번이 2초쯤 걸려서, 안 그러면 손가락이 멈춘다.
+ * `+1 세트`는 횟수를 스스로 들고 가므로 이게 늦어도 어긋나지 않는다.
+ */
+$r->post('/today/{id}/rep', function (string $id): void {
+    Auth::require();
+    Csrf::check();
+    $eid = (int) $id;
+    if (Workout::exercise($eid) === null) {
+        Http::notFound('그런 운동이 없습니다.');
+    }
+    $reps = isset($_POST['reps']) ? Http::postInt('reps') : null;
+    $delta = Http::postInt('delta', 1);
+
+    if (!Http::wantsJson()) {                    // 자바스크립트 없이 쓸 때
+        $wid = Workout::ensure();
+        $reps === null ? Workout::addRep($wid, $eid, $delta) : Workout::setReps($wid, $eid, $reps);
+        Http::redirect('/today/' . $eid);
+    }
+
+    Http::afterResponse(static function () use ($eid, $reps, $delta): void {
+        $wid = Workout::ensure();
+        $reps === null ? Workout::addRep($wid, $eid, $delta) : Workout::setReps($wid, $eid, $reps);
+    });
+    Http::json(['ok' => true], 202);
 });
 
+/** 자바스크립트가 없을 때 쓰는 −1. */
 $r->post('/today/{id}/minus', function (string $id) use ($counterAction): void {
     $counterAction($id, static fn (int $w, int $e) => Workout::addRep($w, $e, -1));
 });
 
+/**
+ * `+1 세트` — 한 줄 쌓는다.
+ * 횟수·무게를 같이 받는다. 그래야 화면이 요청 한 번으로 끝난다(느린 디스크에서 두 번은 길다).
+ */
 $r->post('/today/{id}/set', function (string $id) use ($counterAction): void {
-    $counterAction($id, static fn (int $w, int $e) => Workout::completeSet($w, $e));
+    $counterAction($id, static function (int $w, int $e): void {
+        if (isset($_POST['reps'])) {
+            Workout::setReps($w, $e, Http::postInt('reps'));
+        }
+        if (isset($_POST['weight'])) {
+            $raw = trim(Http::post('weight'));
+            Workout::setWeight($w, $e, $raw === '' ? null : (float) $raw);
+        }
+        Workout::commitSet($w, $e);
+    });
+});
+
+/** 스톱워치 기록 — 걸린 시간으로 한 줄 쌓는다. */
+$r->post('/today/{id}/time', function (string $id) use ($counterAction): void {
+    $counterAction($id, static function (int $w, int $e): void {
+        Workout::commitTime($w, $e, (float) Http::post('secs'));
+    });
 });
 
 $r->post('/today/{id}/weight', function (string $id) use ($counterAction): void {
@@ -424,9 +558,14 @@ $r->post('/today/{id}/weight', function (string $id) use ($counterAction): void 
 
 $r->post('/today/{id}/edit', function (string $id) use ($counterAction): void {
     $counterAction($id, static function (int $w, int $e): void {
-        $setId  = Http::postInt('set_id');
-        $raw    = trim(Http::post('weight'));
-        Workout::editSet($setId, $w, Http::postInt('reps'), $raw === '' ? null : (float) $raw);
+        $raw = trim(Http::post('weight'));
+        Workout::editSet(Http::postInt('set_id'), $w, Http::postInt('reps'), $raw === '' ? null : (float) $raw);
+    });
+});
+
+$r->post('/today/{id}/delete', function (string $id) use ($counterAction): void {
+    $counterAction($id, static function (int $w, int $e): void {
+        Workout::deleteSet(Http::postInt('set_id'), $w);
     });
 });
 

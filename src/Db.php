@@ -56,6 +56,13 @@ final class Db
             $pdo = new PDO('sqlite:' . $file, null, null, $opts);
             $pdo->exec('PRAGMA foreign_keys = ON');
             $pdo->exec('PRAGMA busy_timeout = 5000');
+            // NAS 디스크에서 기본값(delete + synchronous=FULL)은 쓰기 한 번에 2.5초가 걸린다 —
+            // 저널 파일을 만들고 fsync 하고 지우기를 매번 하기 때문이다. 재보니 이렇다.
+            //   delete + FULL   2567ms   WAL + FULL   934ms   WAL + NORMAL   0.2ms
+            // WAL 은 파일에 남는 설정이고 synchronous 는 연결마다 다시 잡아야 한다.
+            // NORMAL 은 정전 때 마지막 몇 건을 잃을 수 있지만 파일이 깨지지는 않는다.
+            $pdo->exec('PRAGMA journal_mode = WAL');
+            $pdo->exec('PRAGMA synchronous = NORMAL');
             // 잠금만으로는 부족하다(저널을 아직 안 만든다). 실제로 한 페이지를 쓰고 되돌린다.
             $version = (int) $pdo->query('PRAGMA user_version')->fetchColumn();
             $pdo->exec('BEGIN IMMEDIATE');

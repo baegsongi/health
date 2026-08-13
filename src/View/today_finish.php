@@ -25,8 +25,13 @@ use function Health\url;
         <div class="card-top">
           <b><?= e($s['name']) ?></b>
           <span class="muted small">
-            <?= e($s['sets']) ?>세트 · <?= e($s['reps']) ?>회
-            <?php if ($s['top_weight'] !== null): ?> · 최고 <?= e($s['top_weight']) ?>kg<?php endif; ?>
+            <?php if (($s['secs'] ?? 0) > 0): ?>
+              <?= e(\Health\Repo\Workout::humanSecs((float) $s['secs'])) ?>
+            <?php endif; ?>
+            <?php if ($s['reps'] > 0): ?>
+              <?= e($s['sets']) ?>세트 · <?= e($s['reps']) ?>회
+              <?php if ($s['top_weight'] !== null): ?> · 최고 <?= e($s['top_weight']) ?>kg<?php endif; ?>
+            <?php endif; ?>
           </span>
         </div>
       </li>

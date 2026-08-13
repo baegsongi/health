@@ -15,7 +15,9 @@ README에서 옮겨온 기술 문서입니다. 설계 배경과 이미 확인된
 | 웹서버 | Apache 2.4 + `mod_rewrite` (`AllowOverride All`) |
 | 그 외 | Composer 없음 · 프레임워크 없음 |
 
-JavaScript는 인바디 앱 열기 한 곳에만 쓰입니다. 꺼도 기록·열람은 전부 됩니다.
+JavaScript는 두 곳에 쓰입니다 — 인바디 앱 열기와, "오늘의 운동" 카운터(스톱워치 ·
+버튼을 눌렀을 때 화면을 먼저 고치고 서버에 알리는 부분). 꺼도 열람은 전부 되고,
+카운터도 예전처럼 버튼마다 화면이 새로 열리는 방식으로 돌아갑니다(스톱워치만 안 됩니다).
 
 ---
 
@@ -68,11 +70,59 @@ cp .env.example .env
 `.env` 는 git 에 올라가지 않습니다. 키가 없으면 AI 호출을 건너뛰고 규칙으로 만든
 문장이 대신 나옵니다 — 화면은 어떤 경우에도 열립니다.
 
-**추론 모델(`deepseek-v4-pro` 등)을 쓸 때는 `max_tokens` 가 넉넉해야 합니다.**
-생각하는 데 토큰을 다 쓰면 답이 빈 채로 옵니다. 기본값은 1500 입니다.
+**추론 모델(`deepseek-v4-pro` 등)은 생각하는 데 토큰을 아주 많이 씁니다.** 실제로 겪은 것 —
+`max_tokens` 가 1500이면 생각만 하다 끝나 답이 비어서 오고, 4000이면 JSON 을 쓰다 중간에서
+잘립니다. 그래서 오늘의 메시지는 **8000**으로 부릅니다(`Coach::MAX_TOKENS`). 답 자체는
+200 토큰이면 되고 쓴 만큼만 값을 치르므로, 나머지는 전부 생각할 자리입니다.
 
-호출은 **하루에 많아야 두 번**입니다(운동 시작 전 · 시작 후). 같은 날 같은 상황이면
-`ai_messages` 에 저장해 둔 것을 씁니다. 첫 호출은 15초쯤 걸리고, 그 뒤로는 즉시 나옵니다.
+**`response_format: json_object` 는 쓰지 않습니다.** 같은 모델에서 재보니 생각한 내용을
+그대로 답에 쏟거나(1759자) 시킨 항목을 빼먹었습니다. 프롬프트로 그냥 부탁하면 3~4초에
+깔끔하게 옵니다. 답이 잘리면(`finish_reason: length`) `Llm\Deepseek` 이 바로 끊습니다 —
+잘린 JSON 을 넘기면 엉뚱한 데서 터지기 때문입니다.
+
+**지금은 `deepseek-chat` 을 씁니다.** 이 일은 생각이 많이 필요한 일이 아닙니다.
+같은 프롬프트로 재보면 차이가 큽니다.
+
+| 모델 | 걸린 시간 | 형식 |
+|---|---|---|
+| `deepseek-v4-pro` | 4~30초 | 자주 어긋남(빈 답 · 중간에서 잘림) |
+| `deepseek-chat` | **1.3~1.5초** | 3/3 성공 |
+
+#### 언제 만드는가
+
+**"오늘의 운동" 화면은 절대 API를 부르지 않습니다** — 미리 만들어 둔 것을 읽기만
+합니다(질의 한 번). 만드는 자리는 셋뿐입니다.
+
+| 언제 | 어디서 |
+|---|---|
+| PT 메시지를 적어 저장했을 때 | `POST /pt-message` |
+| 하루에 한 번, 미리 | `php bin/coach.php` (cron) |
+| 그날 처음 화면을 열었는데 아직 없을 때 | `GET /today` |
+
+**어느 경우든 사람을 기다리게 하지 않습니다.** 화면(리다이렉트 포함)을 먼저 다 보내고
+그 뒤에 만듭니다(`Http::afterResponse` → `fastcgi_finish_request`, PHP-FPM 에서만 동작).
+다 만들어지면 **어느 화면에 있든 알림이 뜹니다** — "AI PT쌤의 메시지가 도착했어요".
+`확인`을 누르면 읽은 것으로 표시하고 오늘의 운동으로 갑니다. 누르기 전까지는 계속 뜨고,
+누른 뒤에는 새로 만들어지기 전까지 뜨지 않습니다(`settings.coach_seen_at`).
+JavaScript 는 쓰지 않습니다 — 폼 하나와, PT 메시지 화면에서만 도는 meta refresh 로 끝냅니다.
+
+아래 cron 을 걸어 두면 아침에 이미 만들어져 있어 앱을 여는 순간 알림이 떠 있습니다.
+
+```bash
+# 매일 새벽 5시
+0 5 * * * cd /volume1/web/health && php bin/coach.php >> storage/logs/coach.log 2>&1
+```
+
+Synology DSM 이라면 **제어판 → 작업 스케줄러 → 생성 → 예약된 작업 → 사용자 정의 스크립트**
+에서 위 명령을 매일 실행하도록 등록합니다(사용자는 `http`).
+
+```bash
+php bin/coach.php           # 이미 있으면 건너뛴다
+php bin/coach.php --force   # 있어도 다시 만든다
+php bin/coach.php --show    # 만들지 않고 지금 보이는 것만 찍는다
+```
+
+cron 도 FPM 도 없으면 규칙으로 만든 문장만 나옵니다 — 화면은 어떤 경우에도 열립니다.
 
 ### 4. 비밀번호 설정
 
@@ -158,6 +208,43 @@ php bin/fetch-media.php --adopt=/path/to/media --move   # 옮기기
 
 ---
 
+## 오늘의 운동 — 세트 기록
+
+화면 위에 **시간 / 카운트** 탭이 있습니다. 유산소 운동은 시간 탭으로 열리고, 나머지는
+카운트 탭으로 열립니다(`Parts` 분류로 정합니다).
+
+**카운트** — 가운데 숫자가 "지금 몇 회 셌나"입니다. 양옆 `−` `+` 로 세고, `+1 세트`를
+누르면 그 횟수와 무게로 아래에 한 줄이 쌓입니다. 세던 값은 그대로 남으므로 같은 횟수로
+한 세트 더 하려면 `+1 세트`만 한 번 더 누르면 됩니다. 12회로 두 번 누르고 15로 고쳐
+한 번 더 누르면 12 · 12 · 15 세 줄이 됩니다.
+
+**시간** — 스톱워치입니다(1/100초). `이 시간으로 기록`을 누르면 걸린 시간이 한 줄로
+쌓입니다.
+
+세는 값은 `workout_current` 에, 쌓인 세트는 `workout_sets` 에 들어갑니다. 그래서
+`workout_sets` 는 전부 "끝낸 세트"입니다. `오늘 끝내기`를 누르면 아직 안 쌓인 값은
+기록이 아니므로 버립니다.
+
+### 왜 화면이 안 넘어가는가
+
+이 NAS 는 SQLite 쓰기 한 번에 0.5~2초가 걸립니다. 버튼을 누를 때마다 화면을 새로 열면
+그 시간이 그대로 "안 눌리는 느낌"이 됩니다. 그래서 카운터는 이렇게 합니다.
+
+| | |
+|---|---|
+| `−` `+` | 화면만 바꾸고, 손이 멈추면(450ms) "지금 몇 회"를 한 번만 보냅니다 |
+| `+1 세트` · 스톱워치 기록 | 목록에 먼저 흐리게 한 줄 붙이고 보냅니다. 답이 오면 서버 것으로 갈아끼웁니다 |
+| 실패하면 | 마지막으로 서버가 준 모습으로 되돌리고 까닭을 화면에 적습니다 |
+
+`POST /today/{id}/rep` 은 답을 기다릴 필요가 없어서(화면이 제 숫자를 이미 압니다)
+200 을 먼저 주고 쓰기는 `Http::afterResponse` 로 미룹니다. `+1 세트`는 횟수·무게를
+스스로 들고 가므로 그게 늦어도 어긋나지 않습니다.
+
+같은 주소들이 `Accept: application/json` 없이 오면 예전처럼 리다이렉트로 돌아갑니다 —
+자바스크립트가 없어도 세트 기록은 됩니다.
+
+---
+
 ## 백업
 
 **SQLite 파일 하나와 미디어 폴더가 전부입니다.**
@@ -166,12 +253,15 @@ php bin/fetch-media.php --adopt=/path/to/media --move   # 옮기기
 # 기록 (작습니다. 자주 하세요)
 sqlite3 storage/health.sqlite ".backup '/backup/health-$(date +%Y%m%d).sqlite'"
 
-# sqlite3 명령이 없다면 — 쓰는 중이 아닐 때 복사하면 됩니다
-cp storage/health.sqlite /backup/health-$(date +%Y%m%d).sqlite
-
 # 미디어 (1.6GB. 바뀔 때만 하세요)
 rsync -a public/media/ /backup/media/
 ```
+
+**`cp` 로 `health.sqlite` 하나만 복사하면 안 됩니다.** DB 는 WAL 모드라(NAS 디스크에서
+기본 모드는 쓰기 한 번에 2.5초가 걸립니다) 방금 쓴 내용이 아직 `health.sqlite-wal` 에
+있을 수 있습니다. 위의 `.backup` 을 쓰거나, 굳이 복사한다면 세 파일을 함께 옮기세요.
+같은 이유로 **SMB 로 마운트한 사본에서 `sqlite3` 로 DB 를 열지 마세요** — WAL 은
+네트워크 파일시스템에서 안전하지 않습니다. NAS 안에서(SSH) 실행하면 됩니다.
 
 되돌릴 때는 파일을 제자리에 다시 놓기만 하면 됩니다.
 
@@ -204,7 +294,7 @@ php bin/probe.php https://<space>.craft.me/<shareId>
 ```
 public/           웹 루트
   index.php       유일한 진입점(프론트 컨트롤러)
-  assets/         css · 폰트 · 파비콘 · inbody.js
+  assets/         css · 폰트 · 파비콘 · inbody.js · counter.js
   media/          내려받은 이미지 · 동영상 (git 제외)
 src/
   App.php         부트스트랩 · autoload · 설정 · 오류 로깅
@@ -212,15 +302,16 @@ src/
   Router.php  Auth.php  Csrf.php  Http.php  View.php
   Parts.php       운동부위 분류 표
   Settings.php    D-DAY 등 화면에서 고치는 설정
-  Coach.php       "오늘의 메시지" — 기록을 근거로 문장을 만든다
+  Coach.php       "오늘의 메시지" — 읽기는 todayMessage, 만들기는 refresh 뿐
+  PtNote.php      그날 PT쌤이 남긴 말 (화면에서 직접 적는다)
   Llm/Deepseek.php  DeepSeek chat completions
   Media.php       body_html 의 [[MEDIA:…]] 자리표시자 → 실제 태그
   MediaFetcher.php  나눠 받기 · 재개 · 이미 받은 파일 가져오기
   Notion/         Client · Craft · Parser · Importer · Attachment · Ids · Title
-  Repo/           Log(열람) · Workout(오늘의 운동)
+  Repo/           Log(열람) · Workout(오늘의 운동 — 세는 값과 쌓인 세트)
   View/           순수 PHP 템플릿
 storage/          health.sqlite · sessions · logs (웹 루트 밖, git 제외)
-bin/              migrate · set-password · import · fetch-media · probe
+bin/              migrate · set-password · import · fetch-media · probe · coach
 migrations/       *.sql
 tests/            run.php + *_test.php
 docs/             인계 문서 · 이 문서 · 결정 기록

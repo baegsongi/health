@@ -15,6 +15,7 @@ use function Health\url;
 
 <div class="home-sub">
   <a class="btn-sm" href="<?= url('/import') ?>">PT 기록 가져오기</a>
+  <a class="btn-sm" href="<?= url('/pt-message') ?>">PT 메시지 추가</a>
   <a class="btn-sm" href="<?= url('/dday') ?>">D-DAY 설정</a>
   <form method="post" action="<?= url('/logout') ?>">
     <?= \Health\Csrf::field() ?>

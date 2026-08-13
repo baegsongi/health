@@ -84,5 +84,27 @@ $ogDesc  = '송이의 운동기록 🏃‍♀️';
 <?php if ($authed && $nav): ?>
   <?= \Health\View::capture('nav', ['here' => $here]) ?>
 <?php endif; ?>
+
+<?php
+/**
+ * 새 메시지가 도착했다는 알림. 어느 화면에 있든 뜬다.
+ * "확인" 을 누르면 읽은 것으로 표시하고 오늘의 운동으로 간다 — 누르기 전까지 계속 뜬다.
+ * JavaScript 없이 폼 하나로 끝낸다.
+ */
+$coachNew = $authed ? \Health\Coach::unseen() : null;
+?>
+<?php if ($coachNew !== null): ?>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="coach-new">
+    <div class="modal-card">
+      <p class="modal-emoji" aria-hidden="true">💌</p>
+      <p class="modal-h" id="coach-new">AI PT쌤의 메시지가 도착했어요</p>
+      <form method="post" action="<?= url('/coach/seen') ?>">
+        <?= \Health\Csrf::field() ?>
+        <input type="hidden" name="id" value="<?= e($coachNew) ?>">
+        <button class="btn btn-primary btn-xl" type="submit">확인</button>
+      </form>
+    </div>
+  </div>
+<?php endif; ?>
 </body>
 </html>
